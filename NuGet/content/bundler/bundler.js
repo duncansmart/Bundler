@@ -158,7 +158,13 @@ function processJsBundle(jsBundle, bundleDir, jsFiles, bundleName, cb) {
     };
 
     jsFiles.forEach(function (file) {
-        if (!(file = file.trim()) || file.startsWith(".")) return; // . ..
+        // Skip blank lines/files beginning with '.' or '#', but allow ../relative paths
+        if (!(file = file.trim()) 
+            || (file.startsWith(".") && !file.startsWith(".."))
+            || file.startsWith('#')) 
+            return; 
+
+        console.log(file);
 
         var isCoffee = file.endsWith(".coffee"), jsFile = isCoffee
                 ? file.replace(".coffee", ".js")
@@ -212,7 +218,11 @@ function processCssBundle(cssBundle, bundleDir, cssFiles, bundleName, cb) {
     };
 
     cssFiles.forEach(function (file) {
-        if (!(file = file.trim()) || file.startsWith(".")) return; // . ..
+        // Skip blank lines/files beginning with '.' or '#', but allow ../relative paths
+        if (!(file = file.trim()) 
+            || (file.startsWith(".") && !file.startsWith(".."))
+            || file.startsWith('#')) 
+            return; 
 
         var isLess = file.endsWith(".less"), isSass = file.endsWith(".sass"),
             cssFile = isLess
@@ -321,17 +331,27 @@ function compileAsync(mode, compileFn /*compileFn(text, textPath, cb(compiledTex
 }
 
 function compileLess(lessCss, lessPath, cb) {
+    console.error('compileLess', lessPath);
     var lessDir = path.dirname(lessPath),
         fileName = path.basename(lessPath),
         options = {
             paths: ['.', lessDir], // Specify search paths for @import directives
             filename: fileName
         };
-    
-    less.render(lessCss, options, function (err, css) {
-        if (err) return cb("") && console.error(err);
-        cb(css);
-    });
+    try{
+        less.render(lessCss, options, function (err, css) {
+            if (err) {
+                console.log(err);
+                console.error(err);
+                return cb("");
+            }
+            cb(css);
+        });
+    }
+    catch(err){
+       console.error(err);
+       throw err;
+    }
 }
 
 function minifyjs(js) {
